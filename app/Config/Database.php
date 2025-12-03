@@ -7,7 +7,7 @@
  */
 class Database {
     private $host     = "localhost";
-    private $port     = 3307;           // Puerto configurable
+    private $port     = 3306;           // Puerto configurable
     private $db_name  = "AbarrotesDB";  // Debe coincidir con el script
     private $username = "root";
     private $password = "";
