@@ -155,19 +155,33 @@ require_once __DIR__ . '/header.php';
 <div class="container">
     <!-- Filtros -->
     <div class="filters-bar">
-        <strong>Categorías:</strong>
-        <button class="filter-btn active" data-category="all">
-            <i class="bi bi-grid-fill"></i> Todas
-        </button>
-        <?php foreach ($categories as $category): ?>
-        <button class="filter-btn" data-category="<?php echo $category['id']; ?>">
-            <?php echo htmlspecialchars($category['nombre']); ?>
-        </button>
-        <?php endforeach; ?>
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+            <div>
+                <strong>Categorías:</strong>
+                <button class="filter-btn active" data-category="all">
+                    <i class="bi bi-grid-fill"></i> Todas
+                </button>
+                <?php foreach ($categories as $category): ?>
+                <button class="filter-btn" data-category="<?php echo $category['id']; ?>">
+                    <?php echo htmlspecialchars($category['nombre']); ?>
+                </button>
+                <?php endforeach; ?>
+            </div>
+            <?php if (!empty($searchQuery)): ?>
+            <div class="text-muted small">
+                Mostrando resultados para "<?php echo htmlspecialchars($searchQuery); ?>" (<?php echo count($products); ?>)
+            </div>
+            <?php endif; ?>
+        </div>
     </div>
-        
+
         <!-- Grid de Productos -->
         <div class="products-grid">
+            <?php if (empty($products)): ?>
+                <div class="alert alert-warning w-100" role="alert">
+                    No se encontraron productos que coincidan con tu búsqueda.
+                </div>
+            <?php endif; ?>
             <?php foreach ($products as $product): ?>
             <div class="product-card" data-category="<?php echo $product['categoria_id']; ?>">
                 <!-- Imagen -->
@@ -210,7 +224,7 @@ require_once __DIR__ . '/header.php';
                     <?php endif; ?>
                     
                     <!-- Botón añadir -->
-                    <form method="POST" action="/proyecto2/index.php?action=add_to_cart">
+                    <form method="POST" action="<?php echo url_for('index.php?action=add_to_cart'); ?>">
                         <input type="hidden" name="product_id" value="<?php echo $product['id']; ?>">
                         <input type="hidden" name="quantity" value="1">
                         <button type="submit" class="add-to-cart-btn" <?php echo $product['stock'] <= 0 ? 'disabled' : ''; ?>>

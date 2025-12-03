@@ -1,3 +1,4 @@
+<?php $searchQuery = $searchQuery ?? ''; ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -163,22 +164,30 @@
         <div class="container">
             <div class="row align-items-center">
                 <div class="col-md-2">
-                    <a href="/proyecto2/index.php?action=client" class="logo">
+                    <a href="<?php echo url_for('index.php?action=client'); ?>" class="logo">
                         <i class="bi bi-cart-fill"></i> MiTienda
                     </a>
                 </div>
                 <div class="col-md-8">
                     <div class="search-bar">
-                        <div class="input-group">
-                            <input type="text" class="form-control" placeholder="Buscar productos..." readonly onclick="window.location.href='/proyecto2/index.php?action=client'">
-                            <button class="btn btn-light" type="button">
+                        <form class="input-group" method="GET" action="<?php echo url_for('index.php'); ?>">
+                            <input type="hidden" name="action" value="client">
+                            <input
+                                type="text"
+                                class="form-control"
+                                name="q"
+                                placeholder="Buscar productos..."
+                                value="<?php echo htmlspecialchars($searchQuery ?? ''); ?>"
+                                aria-label="Buscar productos"
+                            >
+                            <button class="btn btn-light" type="submit" aria-label="Buscar">
                                 <i class="bi bi-search"></i>
                             </button>
-                        </div>
+                        </form>
                     </div>
                 </div>
                 <div class="col-md-2 text-end">
-                    <a href="/proyecto2/index.php?action=cart" class="cart-button">
+                    <a href="<?php echo url_for('index.php?action=cart'); ?>" class="cart-button">
                         <i class="bi bi-cart3"></i>
                         <?php 
                         if (session_status() === PHP_SESSION_NONE) session_start();

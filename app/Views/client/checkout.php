@@ -188,7 +188,7 @@ require_once __DIR__ . '/header.php';
     <div class="row">
         <!-- Formulario -->
         <div class="col-lg-8">
-            <form method="POST" action="/proyecto2/index.php?action=process_order" id="checkoutForm">
+            <form method="POST" action="<?php echo url_for('index.php?action=process_order'); ?>" id="checkoutForm">
                 <div class="checkout-card">
                     <div class="section-title">
                         <i class="bi bi-person-circle"></i> Datos de Contacto
@@ -227,7 +227,7 @@ require_once __DIR__ . '/header.php';
                         Confirmar Compra
                     </button>
                     <div class="text-center">
-                        <a href="/proyecto2/index.php?action=cart" class="back-link">
+                        <a href="<?php echo url_for('index.php?action=cart'); ?>" class="back-link">
                             <i class="bi bi-arrow-left"></i> Volver al carrito
                         </a>
                     </div>

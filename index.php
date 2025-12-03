@@ -1,6 +1,7 @@
 <?php
 session_start();
 
+require_once __DIR__ . '/app/helpers/url.php';
 require_once 'app/Controllers/DashboardController.php';
 require_once 'app/Controllers/ProductController.php';
 require_once 'app/Controllers/AnalyticsController.php';

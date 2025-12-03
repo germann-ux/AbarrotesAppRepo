@@ -17,9 +17,9 @@ class Product {
     }
 
     public function getAll() {
-        $query = "SELECT p.id, 
-                         p.nombre, 
-                         p.nombre AS name, 
+        $query = "SELECT p.id,
+                         p.nombre,
+                         p.nombre AS name,
                          p.descripcion, 
                          p.descripcion AS description, 
                          p.precio, 
@@ -35,6 +35,33 @@ class Product {
                   ORDER BY p.id DESC";
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
+        return $stmt;
+    }
+
+    public function search($term) {
+        $query = "SELECT p.id,
+                         p.nombre,
+                         p.nombre AS name,
+                         p.descripcion,
+                         p.descripcion AS description,
+                         p.precio,
+                         p.precio AS price,
+                         p.stock,
+                         p.imagen_url,
+                         p.imagen_url AS image_url,
+                         p.categoria_id,
+                         c.nombre AS categoria_nombre,
+                         c.nombre AS category_name
+                  FROM " . $this->table_name . " p
+                  LEFT JOIN categorias c ON p.categoria_id = c.id
+                  WHERE p.nombre LIKE :search OR p.descripcion LIKE :search
+                  ORDER BY p.id DESC";
+
+        $stmt = $this->conn->prepare($query);
+        $searchTerm = "%" . $term . "%";
+        $stmt->bindParam(':search', $searchTerm, PDO::PARAM_STR);
+        $stmt->execute();
+
         return $stmt;
     }
 

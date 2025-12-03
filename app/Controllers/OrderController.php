@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../Models/Order.php';
 require_once __DIR__ . '/../Config/Database.php';
+require_once __DIR__ . '/../helpers/url.php';
 
 class OrderController {
     
@@ -14,8 +15,7 @@ class OrderController {
         
         // Verificar que sea admin
         if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-            header("Location: /proyecto2/index.php?action=client");
-            exit;
+            redirect_to('index.php?action=client');
         }
         
         $database = new Database();

@@ -4,6 +4,7 @@ require_once __DIR__ . '/../Models/Category.php';
 require_once __DIR__ . '/../Models/Cart.php';
 require_once __DIR__ . '/../Models/Order.php';
 require_once __DIR__ . '/../Config/Database.php';
+require_once __DIR__ . '/../helpers/url.php';
 
 class ClientController {
     
@@ -18,9 +19,12 @@ class ClientController {
         $database = new Database();
         $db = $database->getConnection();
         
-        // Obtener productos
+        // Obtener productos (búsqueda opcional)
+        $searchQuery = trim($_GET['q'] ?? '');
         $productModel = new Product($db);
-        $stmt = $productModel->getAll();
+        $stmt = $searchQuery !== ''
+            ? $productModel->search($searchQuery)
+            : $productModel->getAll();
         $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         // Obtener categorías para filtros
@@ -66,10 +70,9 @@ class ClientController {
                 }
             }
         }
-        
+
         // Redirigir de vuelta al catálogo
-        header('Location: /proyecto2/index.php?action=client');
-        exit;
+        redirect_to('index.php?action=client');
     }
     
     /**
@@ -105,8 +108,7 @@ class ClientController {
             }
         }
         
-        header('Location: /proyecto2/public/index.php?action=cart');
-        exit;
+        redirect_to('index.php?action=cart');
     }
     
     /**
@@ -124,8 +126,7 @@ class ClientController {
             $_SESSION['success_message'] = 'Producto eliminado del carrito';
         }
         
-        header('Location: /proyecto2/public/index.php?action=cart');
-        exit;
+        redirect_to('index.php?action=cart');
     }
     
     /**
@@ -137,8 +138,7 @@ class ClientController {
         }
         
         if (Cart::isEmpty()) {
-            header('Location: /proyecto2/public/index.php?action=cart');
-            exit;
+            redirect_to('index.php?action=cart');
         }
         
         $cartItems = Cart::getItems();
@@ -191,20 +191,17 @@ class ClientController {
                     Cart::clear();
                     
                     // Redirigir a confirmación
-                    header('Location: /proyecto2/index.php?action=order_confirmation&id=' . $orderId);
-                    exit;
+                    redirect_to('index.php?action=order_confirmation&id=' . $orderId);
                 } else {
                     throw new Exception('Error al crear la orden');
                 }
             } catch (Exception $e) {
                 $db->rollBack();
                 $_SESSION['error_message'] = 'Error al procesar la orden: ' . $e->getMessage();
-                header('Location: /proyecto2/index.php?action=checkout');
-                exit;
+                redirect_to('index.php?action=checkout');
             }
         } else {
-            header('Location: /proyecto2/index.php?action=cart');
-            exit;
+            redirect_to('index.php?action=cart');
         }
     }
     
@@ -228,8 +225,7 @@ class ClientController {
             
             require_once __DIR__ . '/../Views/client/order_confirmation.php';
         } else {
-            header('Location: /proyecto2/public/index.php?action=client');
-            exit;
+            redirect_to('index.php?action=client');
         }
     }
 }

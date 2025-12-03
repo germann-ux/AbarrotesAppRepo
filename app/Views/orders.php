@@ -507,6 +507,8 @@
 </div>
 
 <script>
+const baseIndexUrl = '<?php echo url_for('index.php'); ?>';
+
 // Filtrar órdenes
 function filterOrders(status) {
     const cards = document.querySelectorAll('.order-card');
@@ -536,7 +538,7 @@ function updateOrderStatus() {
     const orderId = document.getElementById('statusOrderId').value;
     const newStatus = document.getElementById('newStatus').value;
     
-    fetch('/proyecto2/index.php?action=api_update_order_status', {
+    fetch(baseIndexUrl + '?action=api_update_order_status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: orderId, status: newStatus })
@@ -560,7 +562,7 @@ function viewOrderDetails(orderId) {
     content.innerHTML = '<div class="text-center"><div class="spinner-border text-primary"></div></div>';
     modal.show();
     
-    fetch('/proyecto2/index.php?action=api_get_order&id=' + orderId)
+    fetch(baseIndexUrl + '?action=api_get_order&id=' + orderId)
         .then(response => response.json())
         .then(order => {
             let itemsHtml = '';

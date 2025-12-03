@@ -230,7 +230,7 @@ require_once __DIR__ . '/header.php';
                 </div>
                 <h3>Tu carrito está vacío</h3>
                 <p class="text-muted">¡Agrega productos para comenzar tu compra!</p>
-                <a href="/proyecto2/index.php?action=client" class="btn btn-primary mt-3" style="background: #3483fa; border: none; padding: 12px 40px;">
+                <a href="<?php echo url_for('index.php?action=client'); ?>" class="btn btn-primary mt-3" style="background: #3483fa; border: none; padding: 12px 40px;">
                     <i class="bi bi-bag"></i> Ver Productos
                 </a>
             </div>
@@ -276,7 +276,7 @@ require_once __DIR__ . '/header.php';
                         
                         <!-- Cantidad -->
                         <div class="quantity-controls">
-                            <form method="POST" action="/proyecto2/index.php?action=update_cart" style="display: flex; gap: 10px; align-items: center;">
+                            <form method="POST" action="<?php echo url_for('index.php?action=update_cart'); ?>" style="display: flex; gap: 10px; align-items: center;">
                                 <input type="hidden" name="product_id" value="<?php echo $item['id']; ?>">
                                 <button type="submit" name="quantity" value="<?php echo $item['quantity'] - 1; ?>" class="quantity-btn">
                                     <i class="bi bi-dash"></i>
@@ -295,7 +295,7 @@ require_once __DIR__ . '/header.php';
                         </div>
                         
                         <!-- Eliminar -->
-                        <a href="/proyecto2/index.php?action=remove_from_cart&id=<?php echo $item['id']; ?>" 
+                        <a href="<?php echo url_for('index.php?action=remove_from_cart&id=' . $item['id']); ?>"
                            class="remove-btn"
                            onclick="return confirm('¿Eliminar este producto?');">
                             <i class="bi bi-trash"></i>
@@ -304,7 +304,7 @@ require_once __DIR__ . '/header.php';
                     <?php endforeach; ?>
                     
                     <div class="mt-3">
-                        <a href="/proyecto2/index.php?action=client" class="continue-shopping">
+                        <a href="<?php echo url_for('index.php?action=client'); ?>" class="continue-shopping">
                             <i class="bi bi-arrow-left"></i> Seguir comprando
                         </a>
                     </div>
@@ -330,11 +330,11 @@ require_once __DIR__ . '/header.php';
                         <span>Total</span>
                         <span>$<?php echo number_format($cartTotal, 2); ?></span>
                     </div>
-                    
-                    <a href="/proyecto2/index.php?action=checkout" class="checkout-btn">
+                    <br>
+                    <a href="<?php echo url_for('index.php?action=checkout'); ?>" class="checkout-btn">
                         <i class="bi bi-credit-card"></i> Continuar compra
                     </a>
-                    
+                    <br>
                     <div class="mt-3 text-center" style="font-size: 0.85rem; color: #666;">
                         <i class="bi bi-shield-check"></i> Compra 100% segura
                     </div>

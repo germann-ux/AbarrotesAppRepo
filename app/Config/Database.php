@@ -3,12 +3,18 @@
 /**
  * Singleton Database Connection Class
  * Handles automatic database and table creation if they do not exist.
+ * Ahora también puede inicializar el esquema desde un script .sql.
  */
 class Database {
-    private $host = "localhost";
-    private $db_name = "smartshop";
+    private $host     = "localhost";
+    private $port     = 3307;           // Puerto configurable
+    private $db_name  = "AbarrotesDB";  // Debe coincidir con el script
     private $username = "root";
     private $password = "";
+
+    // Ruta al archivo SQL de inicialización
+    private $sqlFile  = __DIR__ . "/../../Utils/ScriptInicio.sql";
+
     public $conn;
 
     public function getConnection() {
@@ -16,8 +22,12 @@ class Database {
 
         try {
             // Try to connect normally
-            $this->conn = new PDO("mysql:host=" . $this->host . ";dbname=" . $this->db_name, $this->username, $this->password);
-            $this->conn->exec("set names utf8");
+            $this->conn = new PDO(
+                "mysql:host=" . $this->host . ";port=" . $this->port . ";dbname=" . $this->db_name . ";charset=utf8mb4",
+                $this->username,
+                $this->password
+            );
+            $this->conn->exec("set names utf8mb4");
             $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             
             // Auto-initialize tables to prevent "Table not found" errors
@@ -27,13 +37,25 @@ class Database {
             // If database not found, try to create it
             if ($exception->getCode() == 1049) { // Unknown database
                 try {
-                    $tempConn = new PDO("mysql:host=" . $this->host, $this->username, $this->password);
+                    $tempConn = new PDO(
+                        "mysql:host=" . $this->host . ";port=" . $this->port,
+                        $this->username,
+                        $this->password
+                    );
                     $tempConn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-                    $tempConn->exec("CREATE DATABASE IF NOT EXISTS `" . $this->db_name . "` CHARACTER SET utf8 COLLATE utf8_general_ci");
+                    $tempConn->exec(
+                        "CREATE DATABASE IF NOT EXISTS `" . $this->db_name . "` 
+                         CHARACTER SET utf8mb4 
+                         COLLATE utf8mb4_unicode_ci"
+                    );
                     
                     // Retry connection
-                    $this->conn = new PDO("mysql:host=" . $this->host . ";dbname=" . $this->db_name, $this->username, $this->password);
-                    $this->conn->exec("set names utf8");
+                    $this->conn = new PDO(
+                        "mysql:host=" . $this->host . ";port=" . $this->port . ";dbname=" . $this->db_name . ";charset=utf8mb4",
+                        $this->username,
+                        $this->password
+                    );
+                    $this->conn->exec("set names utf8mb4");
                     $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
                     
                     // Initialize tables after creating DB
@@ -51,81 +73,45 @@ class Database {
     }
 
     private function initTables() {
-        if ($this->conn) {
-            // Create Users Table (usuarios)
-            $sqlUsers = "CREATE TABLE IF NOT EXISTS usuarios (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                nombre VARCHAR(120),
-                email VARCHAR(160) NOT NULL UNIQUE,
-                password_hash VARCHAR(255) NOT NULL,
-                role ENUM('client', 'admin') NOT NULL DEFAULT 'client',
-                creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )";
-            $this->conn->exec($sqlUsers);
+        if (!$this->conn) {
+            return;
+        }
 
-            // Create Default Admin if not exists
-            $checkAdmin = $this->conn->prepare("SELECT COUNT(*) FROM usuarios WHERE email = 'admin@example.com'");
-            $checkAdmin->execute();
-            if ($checkAdmin->fetchColumn() == 0) {
-                $password = password_hash('admin123', PASSWORD_DEFAULT);
-                $insertAdmin = $this->conn->prepare("INSERT INTO usuarios (nombre, email, password_hash, role) VALUES ('Admin', 'admin@example.com', :password, 'admin')");
-                $insertAdmin->bindParam(':password', $password);
-                $insertAdmin->execute();
-            }
+        // Verificar que el archivo SQL existe
+        if (!file_exists($this->sqlFile)) {
+            // Si quieres que truene fuerte, puedes cambiar a die().
+            echo "Archivo SQL de inicialización no encontrado en: " . $this->sqlFile;
+            return;
+        }
 
-            // Create Categories Table
-            $sqlCategories = "CREATE TABLE IF NOT EXISTS categorias (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                nombre VARCHAR(80) NOT NULL,
-                creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )";
-            $this->conn->exec($sqlCategories);
+        // Truco rápido: validar si una tabla clave existe (productos)
+        try {
+            $check = $this->conn
+                ->query("SHOW TABLES LIKE 'productos'")
+                ->fetchColumn();
+        } catch (PDOException $e) {
+            echo "Error al comprobar tablas existentes: " . $e->getMessage();
+            return;
+        }
 
-            // Create Products Table
-            $sqlProducts = "CREATE TABLE IF NOT EXISTS productos (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                nombre VARCHAR(120) NOT NULL,
-                descripcion TEXT,
-                precio DECIMAL(10, 2) NOT NULL DEFAULT 0,
-                stock INT NOT NULL DEFAULT 0,
-                imagen_url VARCHAR(500),
-                categoria_id INT,
-                creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                CONSTRAINT fk_productos_categoria
-                    FOREIGN KEY (categoria_id) REFERENCES categorias(id)
-                    ON DELETE SET NULL
-            )";
-            $this->conn->exec($sqlProducts);
-            
-            // Create Orders Table
-            $sqlOrdenes = "CREATE TABLE IF NOT EXISTS ordenes (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                usuario_id INT NULL,
-                total DECIMAL(10, 2) NOT NULL,
-                estado VARCHAR(50) DEFAULT 'pendiente',
-                nombre_cliente VARCHAR(255) NOT NULL,
-                email_cliente VARCHAR(255),
-                telefono_cliente VARCHAR(50),
-                direccion_envio TEXT,
-                creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
-            $this->conn->exec($sqlOrdenes);
-            
-            // Create Order Items Table
-            $sqlOrdenItems = "CREATE TABLE IF NOT EXISTS orden_items (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                orden_id INT NOT NULL,
-                producto_id INT NOT NULL,
-                nombre_producto VARCHAR(255) NOT NULL,
-                cantidad INT NOT NULL,
-                precio_unitario DECIMAL(10, 2) NOT NULL,
-                subtotal DECIMAL(10, 2) NOT NULL,
-                creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (orden_id) REFERENCES ordenes(id) ON DELETE CASCADE,
-                FOREIGN KEY (producto_id) REFERENCES productos(id) ON DELETE RESTRICT
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
-            $this->conn->exec($sqlOrdenItems);
+        // Si la tabla ya existe, asumimos que el script ya se importó
+        if ($check) {
+            return;
+        }
+
+        // Leer archivo SQL
+        $sql = file_get_contents($this->sqlFile);
+        if ($sql === false || trim($sql) === '') {
+            echo "No se pudo leer el archivo SQL o está vacío: " . $this->sqlFile;
+            return;
+        }
+
+        // Ejecutar el script
+        try {
+            // MySQL/MariaDB permiten múltiples sentencias con exec
+            $this->conn->exec($sql);
+        } catch (PDOException $e) {
+            echo "Error al importar la base de datos desde el script: " . $e->getMessage();
         }
     }
 }

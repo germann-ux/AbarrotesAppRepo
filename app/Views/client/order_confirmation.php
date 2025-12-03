@@ -213,7 +213,7 @@ require_once __DIR__ . '/header.php';
         </div>
         
         <div class="actions mt-4">
-            <a href="/proyecto2/index.php?action=client" class="btn-primary-custom">
+            <a href="<?php echo url_for('index.php?action=client'); ?>" class="btn-primary-custom">
                 Seguir comprando
             </a>
             <button onclick="window.print()" class="btn-secondary-custom">
