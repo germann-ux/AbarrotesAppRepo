@@ -5,7 +5,7 @@ class AuthController {
     
     public function login() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $email = $_POST['email'] ?? '';
+            $email    = $_POST['email']    ?? '';
             $password = $_POST['password'] ?? '';
             
             $user = new User();
@@ -13,9 +13,10 @@ class AuthController {
                 if (session_status() == PHP_SESSION_NONE) {
                     session_start();
                 }
+
                 $_SESSION['user_id'] = $user->id;
-                $_SESSION['nombre'] = $user->nombre;
-                $_SESSION['role'] = $user->role;
+                $_SESSION['nombre']  = $user->nombre;
+                $_SESSION['role']    = $user->role;
                 
                 if ($user->role === 'client') {
                     header("Location: index.php?view=client_dashboard");
@@ -35,10 +36,23 @@ class AuthController {
     public function register() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $user = new User();
-            $user->nombre = $_POST['nombre'] ?? $_POST['username'] ?? '';
-            $user->email = $_POST['email'];
-            $user->password = $_POST['password'];
-            $user->role = 'client'; // Default role for registration
+
+            // Nombre: acepta 'nombre' o 'username'
+            $user->nombre   = $_POST['nombre']   ?? $_POST['username'] ?? '';
+            $user->email    = $_POST['email']    ?? '';
+            $user->password = $_POST['password'] ?? '';
+
+            // Rol desde el formulario (select name="role")
+            $role = $_POST['role'] ?? 'client';
+
+            // Validar rol permitido
+            $allowedRoles = ['client', 'admin'];
+            if (!in_array($role, $allowedRoles, true)) {
+                // Si alguien intenta mandar algo raro, lo forzamos a client
+                $role = 'client';
+            }
+
+            $user->role = $role;
             
             if ($user->emailExists()) {
                 $error = "Email already exists";

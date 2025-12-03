@@ -14,8 +14,9 @@ document.addEventListener('DOMContentLoaded', function () {
         datasets: [{
           label: 'Stock por Categoría',
           data: stockData,
-          backgroundColor: 'rgba(59, 130, 246, 0.5)',
-          borderColor: 'rgba(59, 130, 246, 1)',
+          // Paleta MiTiendita
+          backgroundColor: 'rgba(78, 203, 113, 0.4)',   // #4ECB71 con transparencia
+          borderColor: 'rgba(1, 58, 74, 0.9)',          // #013A4A casi sólido
           borderWidth: 1
         }]
       },
@@ -46,16 +47,18 @@ document.addEventListener('DOMContentLoaded', function () {
         datasets: [{
           label: 'Distribución por Categoría',
           data: countData,
+          // Colores consistentes con la paleta
           backgroundColor: [
-            'rgba(34, 197, 94, 0.7)',
-            'rgba(239, 68, 68, 0.7)',
-            'rgba(59, 130, 246, 0.7)',
-            'rgba(249, 115, 22, 0.7)',
-            'rgba(168, 85, 247, 0.7)',
-            'rgba(20, 184, 166, 0.7)',
-            'rgba(245, 158, 11, 0.7)'
+            'rgba(78, 203, 113, 0.9)',  // verde lima #4ECB71
+            'rgba(242, 181, 68, 0.9)',  // amarillo néctar #F2B544
+            'rgba(1, 58, 74, 0.9)',     // azul petróleo #013A4A
+            'rgba(234, 237, 240, 0.9)', // gris neutro #EAEDF0
+            'rgba(78, 203, 113, 0.6)',  // variación verde
+            'rgba(242, 181, 68, 0.6)',  // variación amarillo
+            'rgba(1, 58, 74, 0.6)'      // variación azul
           ],
-          borderWidth: 1
+          borderWidth: 1,
+          borderColor: '#FFFFFF' // separador limpio sobre fondo blanco
         }]
       },
       options: {
@@ -247,7 +250,8 @@ document.addEventListener('DOMContentLoaded', function () {
       window.location.reload();
     }
   });
-  //una madre responsiva que me dio chat xD
+
+  // una madre responsiva que me dio chat xD
   window.addEventListener('resize', function () {
     if (stockChart) stockChart.resize();
     if (categoryChart) categoryChart.resize();

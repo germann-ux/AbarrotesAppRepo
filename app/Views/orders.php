@@ -1,621 +1,354 @@
 <?php require_once __DIR__ . '/layouts/header.php'; ?>
 
+<?php
+$orders = $orders ?? [];
+if (!is_array($orders)) $orders = [];
+
+$allowedEstados = ['pendiente','procesando','enviada','completada','cancelada'];
+$normalizeEstado = function ($estado) use ($allowedEstados) {
+    $estado = strtolower(trim((string)$estado));
+    return in_array($estado, $allowedEstados, true) ? $estado : 'pendiente';
+};
+
+// Stats en una pasada
+$totalOrders = count($orders);
+$counts = array_fill_keys($allowedEstados, 0);
+$totalSales = 0.0;
+
+foreach ($orders as $o) {
+    $st = $normalizeEstado($o['estado'] ?? '');
+    $counts[$st] = ($counts[$st] ?? 0) + 1;
+    $totalSales += (float)($o['total'] ?? 0);
+}
+
+$baseIndexUrl = url_for('index.php');
+?>
+
 <style>
-/* Estilos generales */
+/* Puedes conservar tus estilos anteriores (stats-card, order-card, etc.) */
 .orders-dashboard {
-    background: #fafafa;
+    background: #EAEDF0; /* gris neutro de la paleta */
     min-height: 100vh;
-    padding: 20px 0;
-}
-
-/* Estadísticas */
-.stats-card {
-    border-radius: 12px;
-    border: 1px solid #e8e8e8;
-    transition: all 0.3s ease;
-    overflow: hidden;
-    position: relative;
-    background: white;
-}
-
-.stats-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 16px rgba(0,0,0,0.08);
-    border-color: #d0d0d0;
-}
-
-.stats-icon {
-    font-size: 2.5rem;
-    opacity: 0.08;
-    position: absolute;
-    right: 20px;
-    bottom: 15px;
-}
-
-.stats-number {
-    font-size: 2.2rem;
-    font-weight: 700;
-    margin: 8px 0;
-    color: #2c3e50;
-}
-
-.stats-label {
-    font-size: 0.85rem;
-    color: #7f8c8d;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-/* Filtros */
-.filter-pills {
-    background: white;
-    padding: 18px;
-    border-radius: 10px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-    margin-bottom: 25px;
-    border: 1px solid #e8e8e8;
-}
-
-.filter-pill {
-    padding: 8px 20px;
-    border-radius: 20px;
-    border: 1px solid #d0d0d0;
-    background: white;
-    font-weight: 500;
-    transition: all 0.2s;
-    cursor: pointer;
-    margin: 4px;
-    color: #5a5a5a;
-    font-size: 0.9rem;
-}
-
-.filter-pill:hover {
-    background: #f5f5f5;
-    border-color: #a0a0a0;
-}
-
-.filter-pill.active {
-    background: #2c3e50;
-    color: white;
-    border-color: #2c3e50;
-}
-
-/* Grid de órdenes */
-.orders-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    gap: 18px;
-    margin-bottom: 30px;
-}
-
-/* Tarjeta de orden */
-.order-card {
-    background: white;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-    transition: all 0.3s ease;
-    border: 1px solid #e8e8e8;
-    border-left: 3px solid #2c3e50;
-    position: relative;
-    overflow: hidden;
-}
-
-.order-card:hover {
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    transform: translateY(-2px);
-    border-color: #d0d0d0;
-}
-
-.order-card.status-pendiente {
-    border-left-color: #95a5a6;
-}
-
-.order-card.status-procesando {
-    border-left-color: #7f8c8d;
-}
-
-.order-card.status-enviada {
-    border-left-color: #5a6c7d;
-}
-
-.order-card.status-completada {
-    border-left-color: #2c3e50;
-}
-
-.order-card.status-cancelada {
-    border-left-color: #bdc3c7;
-}
-
-.order-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid #eeeeee;
-}
-
-.order-id {
-    font-size: 1.15rem;
-    font-weight: 700;
-    color: #2c3e50;
-}
-
-.order-status {
-    padding: 5px 12px;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    border: 1px solid;
-}
-
-.status-pendiente { 
-    background: #f8f9fa; 
-    color: #6c757d; 
-    border-color: #dee2e6;
-}
-.status-procesando { 
-    background: #f1f3f5; 
-    color: #495057; 
-    border-color: #ced4da;
-}
-.status-enviada { 
-    background: #e9ecef; 
-    color: #495057; 
-    border-color: #adb5bd;
-}
-.status-completada { 
-    background: #2c3e50; 
-    color: white; 
-    border-color: #2c3e50;
-}
-.status-cancelada { 
-    background: white; 
-    color: #95a5a6; 
-    border-color: #dee2e6;
-}
-
-.customer-info {
-    margin-bottom: 15px;
-}
-
-.customer-name {
-    font-weight: 600;
-    font-size: 1.05rem;
-    color: #2c3e50;
-    margin-bottom: 5px;
-}
-
-.customer-email {
-    color: #7f8c8d;
-    font-size: 0.88rem;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.order-details {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-bottom: 15px;
-}
-
-.detail-item {
-    display: flex;
-    flex-direction: column;
-}
-
-.detail-label {
-    font-size: 0.7rem;
-    color: #95a5a6;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    margin-bottom: 4px;
-    font-weight: 500;
-}
-
-.detail-value {
-    font-weight: 600;
-    color: #2c3e50;
-    font-size: 0.95rem;
-}
-
-.order-total {
-    background: #2c3e50;
-    color: white;
-    padding: 14px;
-    border-radius: 6px;
-    text-align: center;
-    margin-bottom: 15px;
-}
-
-.total-label {
-    font-size: 0.75rem;
-    opacity: 0.8;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    font-weight: 500;
-}
-
-.total-amount {
-    font-size: 1.6rem;
-    font-weight: 700;
-    margin-top: 4px;
-}
-
-.order-actions {
-    display: flex;
-    gap: 8px;
-}
-
-.action-btn {
-    flex: 1;
-    padding: 10px;
-    border-radius: 6px;
-    border: 1px solid;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    font-size: 0.9rem;
-}
-
-.btn-view {
-    background: #2c3e50;
-    color: white;
-    border-color: #2c3e50;
-}
-
-.btn-view:hover {
-    background: #1a252f;
-    border-color: #1a252f;
-}
-
-.btn-status {
-    background: white;
-    color: #5a5a5a;
-    border-color: #d0d0d0;
-}
-
-.btn-status:hover {
-    background: #f5f5f5;
-    border-color: #a0a0a0;
-}
-
-/* Modal mejorado */
-.modal-content {
-    border-radius: 12px;
-    border: 1px solid #e8e8e8;
-}
-
-.modal-header {
-    background: #2c3e50;
-    color: white;
-    border-radius: 12px 12px 0 0;
-    border-bottom: none;
-}
-
-.empty-state {
-    text-align: center;
-    padding: 60px 20px;
-    color: #95a5a6;
-}
-
-.empty-icon {
-    font-size: 4rem;
-    margin-bottom: 20px;
-    opacity: 0.3;
+    padding: 24px 0;
 }
 </style>
 
-<div class="orders-dashboard">
-    <div class="container-fluid">
-        <!-- Header -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1 class="h2 mb-0">
-                <i class="bi bi-box-seam"></i> Panel de Órdenes
-            </h1>
-        </div>
+<div
+  id="ordersDashboard"
+  class="orders-dashboard"
+  data-base-url="<?php echo htmlspecialchars($baseIndexUrl, ENT_QUOTES, 'UTF-8'); ?>"
+>
+  <div class="max-w-6xl mx-auto px-4">
 
-        <!-- Estadísticas -->
-        <div class="row mb-4">
-            <div class="col-lg-3 col-md-6 mb-3">
-                <div class="stats-card">
-                    <div class="card-body">
-                        <div class="stats-label"><i class="bi bi-receipt"></i> Total Órdenes</div>
-                        <div class="stats-number"><?php echo count($orders); ?></div>
-                        <i class="bi bi-receipt-cutoff stats-icon"></i>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-3 col-md-6 mb-3">
-                <div class="stats-card">
-                    <div class="card-body">
-                        <div class="stats-label"><i class="bi bi-hourglass-split"></i> Pendientes</div>
-                        <div class="stats-number">
-                            <?php echo count(array_filter($orders, fn($o) => $o['estado'] === 'pendiente')); ?>
-                        </div>
-                        <i class="bi bi-clock-history stats-icon"></i>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-3 col-md-6 mb-3">
-                <div class="stats-card">
-                    <div class="card-body">
-                        <div class="stats-label"><i class="bi bi-check-circle"></i> Completadas</div>
-                        <div class="stats-number">
-                            <?php echo count(array_filter($orders, fn($o) => $o['estado'] === 'completada')); ?>
-                        </div>
-                        <i class="bi bi-check2-all stats-icon"></i>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-3 col-md-6 mb-3">
-                <div class="stats-card">
-                    <div class="card-body">
-                        <div class="stats-label"><i class="bi bi-currency-dollar"></i> Ventas Totales</div>
-                        <div class="stats-number">
-                            $<?php echo number_format(array_sum(array_column($orders, 'total')), 0); ?>
-                        </div>
-                        <i class="bi bi-cash-stack stats-icon"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Filtros -->
-        <div class="filter-pills">
-            <strong class="me-3">Filtrar por estado:</strong>
-            <button class="filter-pill active" onclick="filterOrders('all')">
-                <i class="bi bi-grid-fill"></i> Todas
-            </button>
-            <button class="filter-pill" onclick="filterOrders('pendiente')">
-                ⏳ Pendientes
-            </button>
-            <button class="filter-pill" onclick="filterOrders('procesando')">
-                ⚙️ Procesando
-            </button>
-            <button class="filter-pill" onclick="filterOrders('enviada')">
-                🚚 Enviadas
-            </button>
-            <button class="filter-pill" onclick="filterOrders('completada')">
-                ✅ Completadas
-            </button>
-            <button class="filter-pill" onclick="filterOrders('cancelada')">
-                ❌ Canceladas
-            </button>
-        </div>
-
-        <!-- Grid de Órdenes -->
-        <?php if (empty($orders)): ?>
-        <div class="empty-state">
-            <div class="empty-icon">📦</div>
-            <h4>No hay órdenes aún</h4>
-            <p>Las órdenes aparecerán aquí cuando los clientes realicen compras.</p>
-        </div>
-        <?php else: ?>
-        <div class="orders-grid" id="ordersGrid">
-            <?php foreach ($orders as $order): ?>
-            <div class="order-card status-<?php echo $order['estado']; ?>" data-status="<?php echo $order['estado']; ?>">
-                <!-- Header -->
-                <div class="order-header">
-                    <div class="order-id">#<?php echo str_pad($order['id'], 6, '0', STR_PAD_LEFT); ?></div>
-                    <div class="order-status status-<?php echo $order['estado']; ?>">
-                        <?php echo ucfirst($order['estado']); ?>
-                    </div>
-                </div>
-
-                <!-- Cliente -->
-                <div class="customer-info">
-                    <div class="customer-name">
-                        <i class="bi bi-person-circle"></i> <?php echo htmlspecialchars($order['nombre_cliente']); ?>
-                    </div>
-                    <div class="customer-email">
-                        <i class="bi bi-envelope"></i>
-                        <?php echo htmlspecialchars($order['email_cliente']); ?>
-                    </div>
-                </div>
-
-                <!-- Detalles -->
-                <div class="order-details">
-                    <div class="detail-item">
-                        <div class="detail-label">Items</div>
-                        <div class="detail-value">
-                            <i class="bi bi-box"></i> <?php echo $order['items_count']; ?> productos
-                        </div>
-                    </div>
-                    <div class="detail-item">
-                        <div class="detail-label">Fecha</div>
-                        <div class="detail-value">
-                            <i class="bi bi-calendar3"></i> <?php echo date('d/m/Y', strtotime($order['creado_en'])); ?>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Total -->
-                <div class="order-total">
-                    <div class="total-label">Total de la Orden</div>
-                    <div class="total-amount">$<?php echo number_format($order['total'], 2); ?></div>
-                </div>
-
-                <!-- Acciones -->
-                <div class="order-actions">
-                    <button class="action-btn btn-view" onclick="viewOrderDetails(<?php echo $order['id']; ?>)">
-                        <i class="bi bi-eye-fill"></i> Ver Detalles
-                    </button>
-                    <button class="action-btn btn-status" onclick="openStatusModal(<?php echo $order['id']; ?>, '<?php echo $order['estado']; ?>')">
-                        <i class="bi bi-arrow-repeat"></i> Cambiar
-                    </button>
-                </div>
-            </div>
-            <?php endforeach; ?>
-        </div>
-        <?php endif; ?>
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-2">
+      <h1 class="text-2xl font-semibold text-[#013A4A] flex items-center gap-2">
+        <i class="bi bi-box-seam text-[#013A4A]"></i>
+        <span>Panel de Órdenes</span>
+      </h1>
     </div>
+
+    <!-- Estadísticas -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div class="stats-card bg-white rounded-xl shadow-sm border border-[#EAEDF0] relative overflow-hidden">
+        <div class="px-4 py-3">
+          <div class="stats-label text-xs font-semibold uppercase tracking-wide text-[#013A4A] flex items-center gap-1 opacity-70">
+            <i class="bi bi-receipt"></i> Total Órdenes
+          </div>
+          <div class="stats-number text-2xl font-bold text-[#4ECB71] mt-1" id="statTotalOrders">
+            <?php echo $totalOrders; ?>
+          </div>
+          <i class="bi bi-receipt-cutoff stats-icon absolute right-4 bottom-2 text-5xl text-[#EAEDF0]"></i>
+        </div>
+      </div>
+
+      <div class="stats-card bg-white rounded-xl shadow-sm border border-[#EAEDF0] relative overflow-hidden">
+        <div class="px-4 py-3">
+          <div class="stats-label text-xs font-semibold uppercase tracking-wide text-[#013A4A] flex items-center gap-1 opacity-70">
+            <i class="bi bi-hourglass-split"></i> Pendientes
+          </div>
+          <div class="stats-number text-2xl font-bold text-[#F2B544] mt-1" id="statPendientes">
+            <?php echo (int)$counts['pendiente']; ?>
+          </div>
+          <i class="bi bi-clock-history stats-icon absolute right-4 bottom-2 text-5xl text-[#EAEDF0]"></i>
+        </div>
+      </div>
+
+      <div class="stats-card bg-white rounded-xl shadow-sm border border-[#EAEDF0] relative overflow-hidden">
+        <div class="px-4 py-3">
+          <div class="stats-label text-xs font-semibold uppercase tracking-wide text-[#013A4A] flex items-center gap-1 opacity-70">
+            <i class="bi bi-check-circle"></i> Completadas
+          </div>
+          <div class="stats-number text-2xl font-bold text-[#4ECB71] mt-1" id="statCompletadas">
+            <?php echo (int)$counts['completada']; ?>
+          </div>
+          <i class="bi bi-check2-all stats-icon absolute right-4 bottom-2 text-5xl text-[#EAEDF0]"></i>
+        </div>
+      </div>
+
+      <div class="stats-card bg-white rounded-xl shadow-sm border border-[#EAEDF0] relative overflow-hidden">
+        <div class="px-4 py-3">
+          <div class="stats-label text-xs font-semibold uppercase tracking-wide text-[#013A4A] flex items-center gap-1 opacity-70">
+            <i class="bi bi-currency-dollar"></i> Ventas Totales
+          </div>
+          <div class="stats-number text-2xl font-bold text-[#4ECB71] mt-1" id="statVentasTotales">
+            $<?php echo number_format($totalSales, 0); ?>
+          </div>
+          <i class="bi bi-cash-stack stats-icon absolute right-4 bottom-2 text-5xl text-[#EAEDF0]"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filtros -->
+    <div
+      id="orderFilters"
+      class="filter-pills bg-white border border-[#EAEDF0] rounded-xl shadow-sm px-4 py-3 mb-6 flex flex-wrap items-center gap-2"
+    >
+      <strong class="text-sm text-[#013A4A] mr-2">Filtrar por estado:</strong>
+
+      <button
+        type="button"
+        class="filter-pill active px-3 py-1.5 rounded-full border border-[#013A4A] bg-[#013A4A] text-white text-xs font-medium flex items-center gap-1"
+        data-status="all"
+      >
+        <i class="bi bi-grid-fill text-xs"></i> Todas
+      </button>
+
+      <button
+        type="button"
+        class="filter-pill px-3 py-1.5 rounded-full border border-[#EAEDF0] bg-white text-xs text-[#013A4A] font-medium hover:bg-[#EAEDF0] transition"
+        data-status="pendiente"
+      >
+        ⏳ Pendientes
+      </button>
+
+      <button
+        type="button"
+        class="filter-pill px-3 py-1.5 rounded-full border border-[#EAEDF0] bg-white text-xs text-[#013A4A] font-medium hover:bg-[#EAEDF0] transition"
+        data-status="procesando"
+      >
+        ⚙️ Procesando
+      </button>
+
+      <button
+        type="button"
+        class="filter-pill px-3 py-1.5 rounded-full border border-[#EAEDF0] bg-white text-xs text-[#013A4A] font-medium hover:bg-[#EAEDF0] transition"
+        data-status="enviada"
+      >
+        🚚 Enviadas
+      </button>
+
+      <button
+        type="button"
+        class="filter-pill px-3 py-1.5 rounded-full border border-[#EAEDF0] bg-white text-xs text-[#013A4A] font-medium hover:bg-[#EAEDF0] transition"
+        data-status="completada"
+      >
+        ✅ Completadas
+      </button>
+
+      <button
+        type="button"
+        class="filter-pill px-3 py-1.5 rounded-full border border-[#EAEDF0] bg-white text-xs text-[#013A4A] font-medium hover:bg-[#EAEDF0] transition"
+        data-status="cancelada"
+      >
+        ❌ Canceladas
+      </button>
+    </div>
+
+    <!-- Grid de órdenes -->
+    <?php if (empty($orders)): ?>
+      <div class="empty-state bg-white border border-dashed border-[#EAEDF0] rounded-2xl py-16 text-center">
+        <div class="empty-icon text-5xl mb-3">📦</div>
+        <h4 class="text-lg font-semibold text-[#013A4A] mb-1">No hay órdenes aún</h4>
+        <p class="text-sm text-[#013A4A] opacity-70">Las órdenes aparecerán aquí cuando los clientes realicen compras.</p>
+      </div>
+    <?php else: ?>
+      <div
+        id="ordersGrid"
+        class="orders-grid grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5"
+      >
+        <?php foreach ($orders as $order):
+          $id     = (int)($order['id'] ?? 0);
+          $estado = $normalizeEstado($order['estado'] ?? 'pendiente');
+
+          $nombre = htmlspecialchars((string)($order['nombre_cliente'] ?? ''), ENT_QUOTES, 'UTF-8');
+          $email  = htmlspecialchars((string)($order['email_cliente'] ?? ''), ENT_QUOTES, 'UTF-8');
+
+          $items  = (int)($order['items_count'] ?? 0);
+          $creado = (string)($order['creado_en'] ?? '');
+          $fecha  = $creado ? date('d/m/Y', strtotime($creado)) : '—';
+
+          $total  = (float)($order['total'] ?? 0);
+        ?>
+          <div
+            class="order-card bg-white border border-[#EAEDF0] rounded-xl shadow-sm hover:shadow-md transition transform hover:-translate-y-0.5 border-l-4 border-l-[#013A4A] relative overflow-hidden"
+            data-order-id="<?php echo $id; ?>"
+            data-status="<?php echo $estado; ?>"
+          >
+            <div
+              class="order-card bg-white rounded-2xl border border-[#EAEDF0] shadow-md hover:shadow-lg transition-all duration-300 
+                     hover:-translate-y-1 relative overflow-hidden p-5 space-y-5"
+              data-order-id="<?php echo $id; ?>"
+              data-status="<?php echo $estado; ?>"
+            >
+              <!-- Header -->
+              <div class="flex items-center justify-between pb-2 border-b border-[#EAEDF0]">
+                <div class="text-sm font-semibold text-[#013A4A]">
+                  #<?php echo str_pad((string)$id, 6, '0', STR_PAD_LEFT); ?>
+                </div>
+                <div
+                  class="text-[11px] font-semibold uppercase tracking-wide px-3 py-1 rounded-full 
+                         border border-[#EAEDF0] bg-[#EAEDF0] text-[#013A4A]"
+                >
+                  <?php echo ucfirst($estado); ?>
+                </div>
+              </div>
+
+              <!-- Cliente -->
+              <div class="space-y-1">
+                <div class="text-sm font-semibold text-[#013A4A] flex items-center gap-2">
+                  <i class="bi bi-person-circle text-[#013A4A] opacity-60"></i> <?php echo $nombre; ?>
+                </div>
+                <div class="text-xs text-[#013A4A] opacity-70 flex items-center gap-2">
+                  <i class="bi bi-envelope text-[#013A4A] opacity-60"></i> <?php echo $email; ?>
+                </div>
+              </div>
+
+              <!-- Detalles -->
+              <div class="grid grid-cols-2 gap-4 text-xs">
+                <div>
+                  <div class="text-[11px] uppercase tracking-wide text-[#013A4A] opacity-60 mb-1">Items</div>
+                  <div class="font-semibold text-[#013A4A] flex items-center gap-1">
+                    <i class="bi bi-box text-[#013A4A] opacity-60"></i> <?php echo $items; ?> productos
+                  </div>
+                </div>
+                <div>
+                  <div class="text-[11px] uppercase tracking-wide text-[#013A4A] opacity-60 mb-1">Fecha</div>
+                  <div class="font-semibold text-[#013A4A] flex items-center gap-1">
+                    <i class="bi bi-calendar3 text-[#013A4A] opacity-60"></i> <?php echo $fecha; ?>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Total -->
+              <div class="bg-[#013A4A] text-white rounded-xl px-4 py-4 text-center shadow-sm">
+                <div class="text-[11px] uppercase tracking-wide opacity-80 mb-1">Total de la Orden</div>
+                <div class="text-2xl font-bold">$<?php echo number_format($total, 2); ?></div>
+              </div>
+
+              <!-- Acciones -->
+              <div class="flex gap-3">
+                <button
+                  type="button"
+                  class="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-medium px-4 py-2.5 rounded-lg 
+                         bg-[#013A4A] text-white hover:bg-[#4ECB71] transition"
+                  data-action="view"
+                  data-order-id="<?php echo $id; ?>"
+                >
+                  <i class="bi bi-eye-fill text-[13px]"></i>
+                  Ver Detalles
+                </button>
+
+                <button
+                  type="button"
+                  class="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-medium px-4 py-2.5 rounded-lg 
+                         border border-[#EAEDF0] bg-white text-[#013A4A] hover:bg-[#EAEDF0] transition"
+                  data-action="status"
+                  data-order-id="<?php echo $id; ?>"
+                  data-current-status="<?php echo $estado; ?>"
+                >
+                  <i class="bi bi-arrow-repeat text-[13px]"></i>
+                  Cambiar
+                </button>
+              </div>
+            </div>
+          </div>
+
+        <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
+
+  </div>
 </div>
 
-<!-- Modal para detalles -->
-<div class="modal fade" id="orderDetailsModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="bi bi-receipt"></i> Detalles de la Orden</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="orderDetailsContent">
-                <div class="text-center">
-                    <div class="spinner-border text-primary" role="status"></div>
-                </div>
-            </div>
-        </div>
+<!-- Modal: Detalles (Tailwind, sin Bootstrap) -->
+<div
+  id="orderDetailsModal"
+  class="fixed inset-0 z-40 hidden items-center justify-center bg-black/40 px-4"
+>
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+    <div class="flex items-center justify-between px-4 py-3 border-b border-[#EAEDF0]">
+      <h5 class="text-sm font-semibold text-[#013A4A] flex items-center gap-2">
+        <i class="bi bi-receipt"></i> Detalles de la Orden
+      </h5>
+      <button
+        type="button"
+        class="text-[#013A4A] opacity-60 hover:opacity-90 text-xl leading-none"
+        data-close-modal="orderDetailsModal"
+      >&times;</button>
     </div>
+    <div id="orderDetailsContent" class="p-4 overflow-y-auto text-sm text-[#013A4A]">
+      <!-- contenido dinámico -->
+    </div>
+  </div>
 </div>
 
-<!-- Modal para cambiar estado -->
-<div class="modal fade" id="statusModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="bi bi-arrow-repeat"></i> Cambiar Estado</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" id="statusOrderId">
-                <label class="form-label fw-bold">Nuevo Estado:</label>
-                <select class="form-select form-select-lg" id="newStatus">
-                    <option value="pendiente">⏳ Pendiente</option>
-                    <option value="procesando">⚙️ Procesando</option>
-                    <option value="enviada">🚚 Enviada</option>
-                    <option value="completada">✅ Completada</option>
-                    <option value="cancelada">❌ Cancelada</option>
-                </select>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" onclick="updateOrderStatus()">Guardar Cambios</button>
-            </div>
-        </div>
+<!-- Modal: Cambiar estado -->
+<div
+  id="statusModal"
+  class="fixed inset-0 z-40 hidden items-center justify-center bg-black/40 px-4"
+>
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden">
+    <div class="flex items-center justify-between px-4 py-3 border-b border-[#EAEDF0]">
+      <h5 class="text-sm font-semibold text-[#013A4A] flex items-center gap-2">
+        <i class="bi bi-arrow-repeat"></i> Cambiar Estado
+      </h5>
+      <button
+        type="button"
+        class="text-[#013A4A] opacity-60 hover:opacity-90 text-xl leading-none"
+        data-close-modal="statusModal"
+      >&times;</button>
     </div>
+
+    <div class="p-4 space-y-4 text-sm text-[#013A4A]">
+      <input type="hidden" id="statusOrderId">
+      <div class="space-y-1">
+        <label class="font-semibold text-xs uppercase tracking-wide text-[#013A4A] opacity-70">
+          Nuevo Estado
+        </label>
+        <select
+          id="newStatus"
+          class="form-select block w-full rounded-lg border border-[#EAEDF0] px-3 py-2 text-sm text-[#013A4A] 
+                 focus:outline-none focus:ring-2 focus:ring-[#013A4A] focus:border-[#013A4A]"
+        >
+          <option value="pendiente">⏳ Pendiente</option>
+          <option value="procesando">⚙️ Procesando</option>
+          <option value="enviada">🚚 Enviada</option>
+          <option value="completada">✅ Completada</option>
+          <option value="cancelada">❌ Cancelada</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="px-4 py-3 border-t border-[#EAEDF0] flex justify-end gap-2">
+      <button
+        type="button"
+        class="px-3 py-1.5 text-xs font-medium rounded-lg border border-[#EAEDF0] text-[#013A4A] hover:bg-[#EAEDF0]"
+        data-close-modal="statusModal"
+      >
+        Cancelar
+      </button>
+      <button
+        type="button"
+        id="btnSaveStatus"
+        class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-[#013A4A] text-white hover:bg-[#012433]"
+      >
+        Guardar Cambios
+      </button>
+    </div>
+  </div>
 </div>
 
-<script>
-const baseIndexUrl = '<?php echo url_for('index.php'); ?>';
-
-// Filtrar órdenes
-function filterOrders(status) {
-    const cards = document.querySelectorAll('.order-card');
-    const pills = document.querySelectorAll('.filter-pill');
-    
-    pills.forEach(pill => pill.classList.remove('active'));
-    event.target.closest('.filter-pill').classList.add('active');
-    
-    cards.forEach(card => {
-        if (status === 'all' || card.dataset.status === status) {
-            card.style.display = 'block';
-        } else {
-            card.style.display = 'none';
-        }
-    });
-}
-
-// Abrir modal de estado
-function openStatusModal(orderId, currentStatus) {
-    document.getElementById('statusOrderId').value = orderId;
-    document.getElementById('newStatus').value = currentStatus;
-    new bootstrap.Modal(document.getElementById('statusModal')).show();
-}
-
-// Actualizar estado
-function updateOrderStatus() {
-    const orderId = document.getElementById('statusOrderId').value;
-    const newStatus = document.getElementById('newStatus').value;
-    
-    fetch(baseIndexUrl + '?action=api_update_order_status', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: orderId, status: newStatus })
-    })
-    .then(response => response.json())
-    .then(data => {
-        alert('✅ ' + data.message);
-        location.reload();
-    })
-    .catch(error => {
-        alert('❌ Error al actualizar');
-        console.error(error);
-    });
-}
-
-// Ver detalles
-function viewOrderDetails(orderId) {
-    const modal = new bootstrap.Modal(document.getElementById('orderDetailsModal'));
-    const content = document.getElementById('orderDetailsContent');
-    
-    content.innerHTML = '<div class="text-center"><div class="spinner-border text-primary"></div></div>';
-    modal.show();
-    
-    fetch(baseIndexUrl + '?action=api_get_order&id=' + orderId)
-        .then(response => response.json())
-        .then(order => {
-            let itemsHtml = '';
-            order.items.forEach(item => {
-                itemsHtml += `
-                    <tr>
-                        <td>${item.nombre_producto}</td>
-                        <td class="text-center">${item.cantidad}</td>
-                        <td class="text-end">$${parseFloat(item.precio_unitario).toFixed(2)}</td>
-                        <td class="text-end fw-bold">$${parseFloat(item.subtotal).toFixed(2)}</td>
-                    </tr>
-                `;
-            });
-            
-            content.innerHTML = `
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <h6><i class="bi bi-person-circle"></i> Cliente</h6>
-                        <p class="mb-1"><strong>Nombre:</strong> ${order.nombre_cliente}</p>
-                        <p class="mb-1"><strong>Email:</strong> ${order.email_cliente}</p>
-                        <p class="mb-1"><strong>Teléfono:</strong> ${order.telefono_cliente}</p>
-                    </div>
-                    <div class="col-md-6">
-                        <h6><i class="bi bi-geo-alt-fill"></i> Envío</h6>
-                        <p>${order.direccion_envio}</p>
-                        <p class="mb-1"><strong>Fecha:</strong> ${new Date(order.creado_en).toLocaleString()}</p>
-                    </div>
-                </div>
-                <hr>
-                <h6><i class="bi bi-box-seam"></i> Productos</h6>
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Producto</th>
-                            <th class="text-center">Cant.</th>
-                            <th class="text-end">Precio</th>
-                            <th class="text-end">Subtotal</th>
-                        </tr>
-                    </thead>
-                    <tbody>${itemsHtml}</tbody>
-                    <tfoot>
-                        <tr class="table-light">
-                            <td colspan="3" class="text-end fw-bold">Total:</td>
-                            <td class="text-end fw-bold text-success">$${parseFloat(order.total).toFixed(2)}</td>
-                        </tr>
-                    </tfoot>
-                </table>
-            `;
-        })
-        .catch(error => {
-            content.innerHTML = '<div class="alert alert-danger">Error al cargar</div>';
-        });
-}
-</script>
+<script src="<?php echo htmlspecialchars(url_for('public/js/orders.js'), ENT_QUOTES, 'UTF-8'); ?>" defer></script>
 
 <?php require_once __DIR__ . '/layouts/footer.php'; ?>

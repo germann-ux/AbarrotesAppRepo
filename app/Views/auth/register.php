@@ -26,24 +26,41 @@
 <body>
     <div class="register-card">
         <h3 class="text-center mb-4">Registro</h3>
+
         <?php if (isset($error)): ?>
             <div class="alert alert-danger"><?php echo $error; ?></div>
         <?php endif; ?>
+
         <form action="index.php?view=register" method="POST">
+
             <div class="mb-3">
                 <label for="username" class="form-label">Nombre de Usuario</label>
                 <input type="text" class="form-control" id="username" name="username" required>
             </div>
+
             <div class="mb-3">
-                <label for="email" class="form-label">Email</label>
+                <label for="email" class="form-label">Correo electrónico</label>
                 <input type="email" class="form-control" id="email" name="email" required>
             </div>
+
             <div class="mb-3">
                 <label for="password" class="form-label">Contraseña</label>
                 <input type="password" class="form-control" id="password" name="password" required>
             </div>
+
+            <!-- Nuevo campo de rol -->
+            <div class="mb-3">
+                <label for="role" class="form-label">Rol</label>
+                <select class="form-select" id="role" name="role" required>
+                    <option value="">Seleccione un rol</option>
+                    <option value="client">Cliente</option>
+                    <option value="admin">Administrador</option>
+                </select>
+            </div>
+
             <button type="submit" class="btn btn-primary w-100">Registrarse</button>
         </form>
+
         <div class="mt-3 text-center">
             <a href="index.php?view=login">¿Ya tienes cuenta? Inicia sesión</a>
         </div>
